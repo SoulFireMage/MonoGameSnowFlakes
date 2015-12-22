@@ -81,8 +81,8 @@ type flake = { mutable X:float; mutable Y:float; V:float; A:float; scale:Nullabl
 type Snowflakes () as this =
    inherit Game ()
    let graphics = new GraphicsDeviceManager(this)
-   do graphics.PreferredBackBufferWidth <- 1200
-   do graphics.PreferredBackBufferHeight <- 800
+   do graphics.PreferredBackBufferWidth <- int w
+   do graphics.PreferredBackBufferHeight <- int h
    let mutable spriteBatch : SpriteBatch = null
    let mutable textTexture : Texture2D = null
   
@@ -98,10 +98,10 @@ type Snowflakes () as this =
       //use keys to see a blizzard :)   
       let HandleKeys K =
              match K with
-             | Keys.Up -> speed <- speed + 0.1
+             | Keys.Up -> if speed <= 15.0 then speed <- speed + 0.1
              | Keys.Down -> if speed >= 0.1 then speed <- speed - 0.1
-             | Keys.Left -> wind <- wind + 0.2
-             | Keys.Right->  wind <- wind - 0.2 
+             | Keys.Left -> if wind <= 35.0 then wind <- wind + 0.2
+             | Keys.Right->  if wind >= -35.0 then wind <- wind - 0.2 
              | Keys.Space ->  if flakeScarcity >= 1 then flakeScarcity <- flakeScarcity  - 1
              | Keys.F -> if flakeScarcity <= 5 then flakeScarcity <- flakeScarcity  + 1
              | _ -> wind <- wind
@@ -131,8 +131,10 @@ type Snowflakes () as this =
                        innerflake={texture2d=Texture2D.FromStream(this.GraphicsDevice, Text.pflakeBuilder (rnd.Next(3)));
                        X=x2; Y=y2; V=v2; A=a2;scale=scale2;spinfactor=spinFactor2;spinFun=spinFun2}}
          flakes.Add(flake)         
-      //Which flakes are on the screen? Which have gone off.
-      let onScreen, offScreen = flakes |> Seq.toList |> List.partition (fun flake -> flake.Y < h)
+      //Which flakes are on the screen? Which have gone off. As there is an innerflake, lets make sure they're both in shot
+      let withInBounds x y = (x < w && x >= 0.) || (y < h && y >= 0.)
+      let onScreen, offScreen = flakes |> Seq.toList |> List.partition (fun flake ->   withInBounds flake.X flake.Y && withInBounds flake.innerflake.X flake.innerflake.Y)  
+      
       for flake in onScreen do
          let r = flake.A * System.Math.PI / 180.0
          let r2 = flake.innerflake.A * System.Math.PI / 180.0
